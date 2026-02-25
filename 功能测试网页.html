@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中英词汇管理器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #333;
+            background: #f5f7fa;
+            padding: 20px;  /* 页面内边距，控制内容与浏览器边缘的距离 */
+            max-width: 2944px;  /* 页面最大宽度，超过这个宽度后内容居中，两侧留白 */
+            margin: 0 auto;  /* 配合max-width实现水平居中 */
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .control-panel {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #d35400;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .toggle-edit-btn {
+            background-color: #9b59b6;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .toggle-edit-btn:hover {
+            background-color: #8e44ad;
+        }
+        
+        .edit-form {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .categories-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));  /* 卡片最小宽度300px */
+            gap: 20px;   /* 分类卡片之间的间距（水平+垂直） */
+        }
+        
+        .category {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+            border-left: 4px solid #3498db;
+        }
+        
+        .category.dragging {
+            opacity: 0.6;
+            transform: rotate(3deg);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .category.drag-over {
+            border: 2px dashed #3498db;
+            background-color: #f0f8ff;
+        }
+        
+        .category-title {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .drag-handle {
+            cursor: grab;
+            color: #7f8c8d;
+            padding: 5px;
+            font-size: 16px;
+            margin-right: 10px;
+            user-select: none;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .category-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .words-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;  /* 词条之间的间距（水平+垂直） */
+            margin-bottom: 5px;
+        }
+        
+        .word-pair {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #f1f8ff, #e3f2fd);
+            border: 1px solid #c3d9ff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        /* 词条拖拽样式 */
+        .word-pair[draggable="true"] {
+            cursor: grab;
+        }
+        
+        .word-pair[draggable="true"]:active {
+            cursor: grabbing;
+        }
+        
+        .word-pair.dragging {
+            opacity: 0.7;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100; /* 提高层级，避免被遮挡 */
+        }
+        
+        .word-pair.drag-over {
+            background: linear-gradient(135deg, #e8f4fd, #d7e9fc);
+            border-color: #2980b9;
+        }
+        
+        .word-pair:hover {
+            background: linear-gradient(135deg, #e1f0ff, #d1e7ff);
+            border-color: #3498db;
+            transform: translateY(-1px);
+        }
+        
+        .chinese {
+            font-weight: 600;
+            margin-right: 10px;
+            color: #2c3e50;
+        }
+        
+        .english {
+            color: #0066cc;
+            font-weight: 500;
+        }
+        
+        .word-controls {
+            display: none;
+            position: absolute;
+            right: 5px;
+            top: 5px;
+        }
+        
+        .word-pair.editing .word-controls {
+            display: flex;
+            gap: 3px;
+        }
+        
+        .word-controls button {
+            padding: 3px 6px;
+            font-size: 10px;
+        }
+        
+        .copy-notice {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #2ecc71;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 13px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 空状态样式 */
+        .empty-state {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        .empty-category-state {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .categories-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>中英词汇管理器</h1>
+            <p>点击中文复制中文，点击英文复制英文 | 进入编辑模式后可拖拽☰图标调整分类顺序，拖拽词条调整位置（支持跨分类）</p>
+        </div>
+        <button id="toggleEditMode" class="toggle-edit-btn">进入编辑模式</button>
+    </div>
+    
+    <div class="control-panel" id="controlPanel">
+        <div class="control-buttons">
+            <button id="addCategory" class="btn-success">添加新分类</button>
+            <button id="saveData" class="btn-primary">保存数据</button>
+            <button id="exportData" class="btn-primary">导出数据</button>
+            <button id="importData" class="btn-primary">导入数据</button>
+        </div>
+        
+        <div class="edit-form" id="categoryForm">
+            <div class="form-group">
+                <label for="newCategoryName">分类名称</label>
+                <input type="text" id="newCategoryName" placeholder="输入分类名称">
+            </div>
+            <button id="saveCategory" class="btn-success">保存分类</button>
+            <button id="cancelCategory" class="btn-warning">取消</button>
+        </div>
+        
+        <div class="edit-form" id="wordForm">
+            <div class="form-group">
+                <label for="newChinese">中文词语</label>
+                <input type="text" id="newChinese" placeholder="输入中文词语">
+            </div>
+            <div class="form-group">
+                <label for="newEnglish">英文词语</label>
+                <input type="text" id="newEnglish" placeholder="输入英文词语">
+            </div>
+            <button id="saveWord" class="btn-success">保存词语</button>
+            <button id="cancelWord" class="btn-warning">取消</button>
+        </div>
+        
+        <input type="file" id="importFile" style="display: none;" accept=".json">
+    </div>
+    
+    <div id="categoriesContainer" class="categories-container">
+        <!-- 分类内容将通过JavaScript动态生成 -->
+    </div>
+    
+    <div class="copy-notice" id="copyNotice">
+        已复制: <span id="copiedText"></span>
+    </div>
+    
+    <script>
+        // ===================== 常量定义（优化点：常量抽离） =====================
+        const CONSTANTS = {
+            STORAGE_KEY: 'wordDictionary',
+            DEFAULT_DATA: [
+                {
+                    category: "水果",
+                    words: [
+                        { ch: "苹果", en: "apple" },
+                        { ch: "香蕉", en: "banana" },
+                        { ch: "橙子", en: "orange" }
+                    ]
+                },
+                {
+                    category: "动物",
+                    words: [
+                        { ch: "猫", en: "cat" },
+                        { ch: "狗", en: "dog" },
+                        { ch: "鸟", en: "bird" }
+                    ]
+                },
+                {
+                    category: "颜色",
+                    words: [
+                        { ch: "红色", en: "red" },
+                        { ch: "蓝色", en: "blue" },
+                        { ch: "绿色", en: "green" }
+                    ]
+                }
+            ],
+            DEBOUNCE_DELAY: 300,
+            NOTICE_DURATION: 1500,
+            EXPORT_FILE_NAME: 'word-dictionary.json'
+        };
+
+        // ===================== 全局变量 =====================
+        let wordData = [];
+        let isEditMode = false;
+        let currentEditingCategoryIndex = -1;
+        let currentEditingWordIndex = -1;
+        let draggingWordData = null;
+
+        // ===================== 工具函数 =====================
+        /**
+         * 防抖函数
+         * @param {Function} func - 要防抖的函数
+         * @param {number} delay - 延迟时间
+         * @returns {Function} 防抖后的函数
+         */
+        function debounce(func, delay = CONSTANTS.DEBOUNCE_DELAY) {
+            let timer = null;
+            return function(...args) {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => {
+                    func.apply(this, args);
+                }, delay);
+            };
+        }
+
+        /**
+         * 验证词汇数据格式是否合法
+         * @param {Array} data - 要验证的数据
+         * @returns {boolean} 是否合法
+         */
+        function validateWordData(data) {
+            return Array.isArray(data) && data.every(item => 
+                typeof item === 'object' && 
+                item !== null && 
+                typeof item.category === 'string' && 
+                Array.isArray(item.words) &&
+                item.words.every(word => 
+                    typeof word === 'object' && 
+                    word !== null && 
+                    typeof word.ch === 'string' && 
+                    typeof word.en === 'string'
+                )
+            );
+        }
+
+        /**
+         * 设置默认数据
+         */
+        function setDefaultData() {
+            // 深拷贝避免引用问题
+            wordData = JSON.parse(JSON.stringify(CONSTANTS.DEFAULT_DATA));
+            saveData();
+        }
+
+        /**
+         * 处理词条拖拽放下逻辑
+         * @param {number} dragCatIndex - 拖拽分类索引
+         * @param {number} dragWordIndex - 拖拽词条索引
+         * @param {number} dropCatIndex - 目标分类索引
+         * @param {number} dropWordIndex - 目标词条索引
+         */
+        function handleWordDragDrop(dragCatIndex, dragWordIndex, dropCatIndex, dropWordIndex) {
+            if (dragCatIndex === dropCatIndex && dragWordIndex !== dropWordIndex) {
+                // 同分类交换
+                const temp = wordData[dragCatIndex].words[dragWordIndex];
+                wordData[dragCatIndex].words[dragWordIndex] = wordData[dropCatIndex].words[dropWordIndex];
+                wordData[dropCatIndex].words[dropWordIndex] = temp;
+            } else {
+                // 跨分类移动
+                const draggedWord = wordData[dragCatIndex].words.splice(dragWordIndex, 1)[0];
+                wordData[dropCatIndex].words.splice(dropWordIndex, 0, draggedWord);
+            }
+            saveData();
+            debouncedRender();
+        }
+
+        // ===================== 核心功能函数 =====================
+        /**
+         * 初始化数据
+         */
+        function initializeData() {
+            const savedData = localStorage.getItem(CONSTANTS.STORAGE_KEY);
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    // 验证数据格式是否正确（优化点：数据验证增强）
+                    if (validateWordData(parsedData)) {
+                        wordData = parsedData;
+                    } else {
+                        throw new Error('数据格式不正确');
+                    }
+                } catch (error) {
+                    console.error('加载保存数据失败:', error);
+                    // 使用默认数据
+                    setDefaultData();
+                }
+            } else {
+                setDefaultData();
+            }
+            renderCategories();
+        }
+
+        /**
+         * 渲染所有分类（优化点：空状态处理、减少DOM操作）
+         */
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+            
+            // 无分类时的空状态提示（优化点：空状态处理）
+            if (wordData.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>暂无分类</h3>
+                        <p style="margin-top: 10px;">点击"添加新分类"创建你的第一个词汇分类吧</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 使用文档片段减少DOM重排（优化点：减少不必要的DOM操作）
+            const fragment = document.createDocumentFragment();
+            
+            wordData.forEach((category, categoryIndex) => {
+                const categoryElement = document.createElement('div');
+                categoryElement.className = 'category';
+                categoryElement.setAttribute('data-index', categoryIndex);
+                
+                // 分类下无词条时的空状态提示（优化点：空状态处理）
+                const wordsHtml = category.words.length > 0 
+                    ? category.words.map((word, wordIndex) => `
+                        <div class="word-pair ${isEditMode ? 'editing' : ''}" 
+                             data-category="${categoryIndex}" 
+                             data-word="${wordIndex}"
+                             draggable="${isEditMode ? 'true' : 'false'}">
+                            <span class="chinese">${word.ch}</span>
+                            <span class="english">${word.en}</span>
+                            <div class="word-controls">
+                                <button class="btn-primary edit-word">编辑</button>
+                                <button class="btn-danger delete-word">删除</button>
+                            </div>
+                        </div>
+                    `).join('')
+                    : `
+                        <div class="empty-category-state">
+                            暂无词条，点击"添加词语"创建吧
+                        </div>
+                    `;
+                
+                categoryElement.innerHTML = `
+                    <div class="category-title">
+                        <div class="drag-handle" style="display: ${isEditMode ? 'inline-block' : 'none'}">☰</div>
+                        <span>${category.category}</span>
+                        <div class="category-controls" style="display: ${isEditMode ? 'flex' : 'none'}">
+                            <button class="btn-primary edit-category" data-index="${categoryIndex}">编辑</button>
+                            <button class="btn-success add-word" data-index="${categoryIndex}">添加词语</button>
+                            <button class="btn-danger delete-category" data-index="${categoryIndex}">删除</button>
+                        </div>
+                    </div>
+                    <div class="words-container">
+                        ${wordsHtml}
+                    </div>
+                `;
+                fragment.appendChild(categoryElement);
+            });
+            
+            // 一次性插入DOM
+            container.appendChild(fragment);
+            
+            if (isEditMode) {
+                bindDragEvents();
+                bindWordDragEvents();
+            }
+        }
+
+        // 防抖后的渲染函数
+        const debouncedRender = debounce(renderCategories, 100);
+
+        /**
+         * 绑定分类拖拽事件
+         */
+        function bindDragEvents() {
+            const dragHandles = document.querySelectorAll('.drag-handle');
+            
+            dragHandles.forEach(handle => {
+                const category = handle.closest('.category');
+                
+                handle.addEventListener('dragstart', function(e) {
+                    if (!isEditMode) return;
+                    const draggedIndex = parseInt(category.getAttribute('data-index'));
+                    category.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', `category|${draggedIndex}`);
+                });
+                
+                handle.addEventListener('dragend', function() {
+                    category.classList.remove('dragging');
+                    document.querySelectorAll('.category').forEach(cat => {
+                        cat.classList.remove('drag-over');
+                    });
+                });
+            });
+            
+            const categories = document.querySelectorAll('.category');
+            
+            categories.forEach(category => {
+                category.addEventListener('dragover', function(e) {
+                    if (!isEditMode) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    this.classList.add('drag-over');
+                });
+                
+                category.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+                
+                category.addEventListener('drop', function(e) {
+                    if (!isEditMode) return;
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    
+                    const data = e.dataTransfer.getData('text/plain');
+                    if (!data.startsWith('category|')) return;
+                    
+                    const draggedIndex = parseInt(data.split('|')[1]);
+                    const dropIndex = parseInt(this.getAttribute('data-index'));
+                    
+                    if (draggedIndex !== dropIndex) {
+                        const movedCategory = wordData.splice(draggedIndex, 1)[0];
+                        let newIndex = dropIndex;
+                        if (draggedIndex < dropIndex) newIndex--;
+                        wordData.splice(newIndex, 0, movedCategory);
+                        renderCategories();
+                        saveData();
+                    }
+                });
+            });
+        }
+
+        /**
+         * 绑定词条拖拽事件
+         */
+        function bindWordDragEvents() {
+            const wordPairs = document.querySelectorAll('.word-pair');
+            
+            wordPairs.forEach(pair => {
+                // 拖拽开始：记录拖拽的词条信息
+                pair.addEventListener('dragstart', function(e) {
+                    if (!isEditMode) {
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    const categoryIndex = parseInt(this.getAttribute('data-category'));
+                    const wordIndex = parseInt(this.getAttribute('data-word'));
+                    // 保存拖拽的词条数据
+                    draggingWordData = {
+                        catIndex: categoryIndex,
+                        wordIndex: wordIndex,
+                        word: wordData[categoryIndex].words[wordIndex]
+                    };
+                    
+                    this.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', `word|${categoryIndex}|${wordIndex}`);
+                    e.dataTransfer.effectAllowed = 'move';
+                    // 阻止事件冒泡，避免和分类拖拽冲突
+                    e.stopPropagation();
+                });
+                
+                // 拖拽结束：仅清除样式，不处理数据
+                pair.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    document.querySelectorAll('.word-pair').forEach(p => {
+                        p.classList.remove('drag-over');
+                    });
+                    // 重置拖拽数据
+                    draggingWordData = null;
+                });
+                
+                // 拖拽经过：仅视觉反馈
+                pair.addEventListener('dragover', function(e) {
+                    if (!isEditMode || !draggingWordData) return;
+                    
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    e.stopPropagation(); // 阻止冒泡
+                    if (!this.classList.contains('dragging')) {
+                        this.classList.add('drag-over');
+                    }
+                });
+                
+                // 拖拽离开：清除视觉反馈
+                pair.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+                
+                // 放置：核心数据交换逻辑
+                pair.addEventListener('drop', function(e) {
+                    if (!isEditMode || !draggingWordData) return;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.remove('drag-over');
+                    
+                    // 解析目标词条信息
+                    const dropCatIndex = parseInt(this.getAttribute('data-category'));
+                    const dropWordIndex = parseInt(this.getAttribute('data-word'));
+                    const dragCatIndex = draggingWordData.catIndex;
+                    const dragWordIndex = draggingWordData.wordIndex;
+                    
+                    // 调用统一的拖拽处理函数（优化点：函数职责单一化）
+                    handleWordDragDrop(dragCatIndex, dragWordIndex, dropCatIndex, dropWordIndex);
+                });
+            });
+        }
+
+        /**
+         * 切换编辑模式
+         */
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const button = document.getElementById('toggleEditMode');
+            const controlPanel = document.getElementById('controlPanel');
+            
+            if (isEditMode) {
+                button.textContent = '退出编辑模式';
+                button.className = 'btn-danger';
+                controlPanel.style.display = 'block';
+            } else {
+                button.textContent = '进入编辑模式';
+                button.className = 'toggle-edit-btn';
+                controlPanel.style.display = 'none';
+                hideCategoryForm();
+                hideWordForm();
+            }
+            
+            renderCategories();
+        }
+
+        // ===================== 分类表单相关 =====================
+        function showCategoryForm() {
+            document.getElementById('categoryForm').style.display = 'block';
+            document.getElementById('newCategoryName').value = '';
+            currentEditingCategoryIndex = -1;
+        }
+
+        function hideCategoryForm() {
+            document.getElementById('categoryForm').style.display = 'none';
+        }
+
+        function saveCategory() {
+            const name = document.getElementById('newCategoryName').value.trim();
+            if (!name) {
+                showCopyNotice('请输入分类名称', 'error');
+                return;
+            }
+            
+            if (currentEditingCategoryIndex === -1) {
+                wordData.push({ category: name, words: [] });
+            } else {
+                wordData[currentEditingCategoryIndex].category = name;
+            }
+            
+            hideCategoryForm();
+            renderCategories();
+            saveData();
+        }
+
+        function editCategory(index) {
+            document.getElementById('categoryForm').style.display = 'block';
+            document.getElementById('newCategoryName').value = wordData[index].category;
+            currentEditingCategoryIndex = index;
+        }
+
+        function deleteCategory(index) {
+            if (confirm('确定要删除这个分类吗？删除后分类下的所有词条也会被删除')) {
+                wordData.splice(index, 1);
+                renderCategories();
+                saveData();
+            }
+        }
+
+        // ===================== 词语表单相关 =====================
+        function showWordForm(categoryIndex) {
+            document.getElementById('wordForm').style.display = 'block';
+            document.getElementById('newChinese').value = '';
+            document.getElementById('newEnglish').value = '';
+            currentEditingCategoryIndex = categoryIndex;
+            currentEditingWordIndex = -1;
+        }
+
+        function hideWordForm() {
+            document.getElementById('wordForm').style.display = 'none';
+        }
+
+        function saveWord() {
+            const chinese = document.getElementById('newChinese').value.trim();
+            const english = document.getElementById('newEnglish').value.trim();
+            
+            if (!chinese || !english) {
+                showCopyNotice('请输入中文和英文词语', 'error');
+                return;
+            }
+            
+            if (currentEditingCategoryIndex === -1) {
+                showCopyNotice('请先选择分类', 'error');
+                return;
+            }
+            
+            if (currentEditingWordIndex === -1) {
+                wordData[currentEditingCategoryIndex].words.push({ ch: chinese, en: english });
+            } else {
+                wordData[currentEditingCategoryIndex].words[currentEditingWordIndex] = { ch: chinese, en: english };
+            }
+            
+            hideWordForm();
+            renderCategories();
+            saveData();
+        }
+
+        function editWord(categoryIndex, wordIndex) {
+            document.getElementById('wordForm').style.display = 'block';
+            document.getElementById('newChinese').value = wordData[categoryIndex].words[wordIndex].ch;
+            document.getElementById('newEnglish').value = wordData[categoryIndex].words[wordIndex].en;
+            currentEditingCategoryIndex = categoryIndex;
+            currentEditingWordIndex = wordIndex;
+        }
+
+        function deleteWord(categoryIndex, wordIndex) {
+            if (confirm('确定要删除这个词语吗？')) {
+                wordData[categoryIndex].words.splice(wordIndex, 1);
+                renderCategories();
+                saveData();
+            }
+        }
+
+        // ===================== 数据存储相关 =====================
+        function saveData() {
+            localStorage.setItem(CONSTANTS.STORAGE_KEY, JSON.stringify(wordData));
+            showCopyNotice('数据已保存', 'save');
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(wordData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = CONSTANTS.EXPORT_FILE_NAME;
+            link.click();
+        }
+
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    // 严格验证导入数据格式（优化点：数据验证增强）
+                    if (validateWordData(importedData)) {
+                        wordData = importedData;
+                        renderCategories();
+                        saveData();
+                        showCopyNotice('数据导入成功', 'save');
+                    } else {
+                        showCopyNotice('导入失败：数据格式不正确', 'error');
+                    }
+                } catch (error) {
+                    showCopyNotice(`导入失败：${error.message}`, 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ===================== 复制功能 =====================
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text)
+                    .then(() => showCopyNotice(text))
+                    .catch(err => {
+                        console.error('复制失败:', err);
+                        fallbackCopy(text);
+                    });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) showCopyNotice(text);
+                else showCopyNotice('复制失败，请手动选择文本复制', 'error');
+            } catch (err) {
+                console.error('复制失败:', err);
+                showCopyNotice('复制失败，请手动选择文本复制', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showCopyNotice(text, type = 'copy') {
+            const copyNotice = document.getElementById('copyNotice');
+            
+            // 根据类型设置不同的样式和文本
+            if (type === 'copy') {
+                copyNotice.textContent = `已复制: ${text}`;
+                copyNotice.style.backgroundColor = '#2ecc71';
+            } else if (type === 'save') {
+                copyNotice.textContent = text;
+                copyNotice.style.backgroundColor = '#3498db';
+            } else if (type === 'error') {
+                copyNotice.textContent = text;
+                copyNotice.style.backgroundColor = '#e74c3c';
+            }
+            
+            copyNotice.style.display = 'block';
+            
+            setTimeout(() => {
+                copyNotice.style.display = 'none';
+            }, CONSTANTS.NOTICE_DURATION);
+        }
+
+        // ===================== 事件委托初始化（优化点：事件委托） =====================
+        function initEventDelegation() {
+            // 分类容器事件委托
+            const categoriesContainer = document.getElementById('categoriesContainer');
+            categoriesContainer.addEventListener('click', function(e) {
+                const target = e.target;
+                
+                // 编辑分类
+                if (target.classList.contains('edit-category')) {
+                    const index = parseInt(target.getAttribute('data-index'));
+                    editCategory(index);
+                }
+                
+                // 添加词语
+                if (target.classList.contains('add-word')) {
+                    const index = parseInt(target.getAttribute('data-index'));
+                    showWordForm(index);
+                }
+                
+                // 删除分类
+                if (target.classList.contains('delete-category')) {
+                    const index = parseInt(target.getAttribute('data-index'));
+                    deleteCategory(index);
+                }
+                
+                // 编辑词语
+                if (target.classList.contains('edit-word')) {
+                    const wordPair = target.closest('.word-pair');
+                    const categoryIndex = parseInt(wordPair.getAttribute('data-category'));
+                    const wordIndex = parseInt(wordPair.getAttribute('data-word'));
+                    editWord(categoryIndex, wordIndex);
+                }
+                
+                // 删除词语
+                if (target.classList.contains('delete-word')) {
+                    const wordPair = target.closest('.word-pair');
+                    const categoryIndex = parseInt(wordPair.getAttribute('data-category'));
+                    const wordIndex = parseInt(wordPair.getAttribute('data-word'));
+                    deleteWord(categoryIndex, wordIndex);
+                }
+                
+                // 复制中文/英文
+                if (!isEditMode) {
+                    if (target.classList.contains('chinese')) {
+                        const wordPair = target.closest('.word-pair');
+                        const categoryIndex = parseInt(wordPair.getAttribute('data-category'));
+                        const wordIndex = parseInt(wordPair.getAttribute('data-word'));
+                        const text = wordData[categoryIndex].words[wordIndex].ch;
+                        copyToClipboard(text);
+                    }
+                    if (target.classList.contains('english')) {
+                        const wordPair = target.closest('.word-pair');
+                        const categoryIndex = parseInt(wordPair.getAttribute('data-category'));
+                        const wordIndex = parseInt(wordPair.getAttribute('data-word'));
+                        const text = wordData[categoryIndex].words[wordIndex].en;
+                        copyToClipboard(text);
+                    }
+                }
+            });
+            
+            // 绑定全局按钮事件（只绑定一次）
+            document.getElementById('toggleEditMode').addEventListener('click', toggleEditMode);
+            document.getElementById('addCategory').addEventListener('click', showCategoryForm);
+            document.getElementById('saveData').addEventListener('click', debounce(saveData));
+            document.getElementById('exportData').addEventListener('click', exportData);
+            document.getElementById('importData').addEventListener('click', importData);
+            document.getElementById('saveCategory').addEventListener('click', debounce(saveCategory));
+            document.getElementById('cancelCategory').addEventListener('click', hideCategoryForm);
+            document.getElementById('saveWord').addEventListener('click', debounce(saveWord));
+            document.getElementById('cancelWord').addEventListener('click', hideWordForm);
+            document.getElementById('importFile').addEventListener('change', handleFileImport);
+        }
+
+        // ===================== 初始化 =====================
+        document.addEventListener('DOMContentLoaded', function() {
+            initEventDelegation(); // 初始化事件委托（优化点：事件委托）
+            initializeData();
+        });
+    </script>
+</body>
+</html>
